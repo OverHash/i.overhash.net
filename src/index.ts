@@ -26,7 +26,7 @@ app.use(fileUpload({
 	useTempFiles: true,
 	tempFileDir: __dirname + '/tmp/',
 	createParentPath: true,
-	limits: { fileSize: 1024 * 1024 * 5 }
+	limits: { fileSize: 1024 * 1024 * 5 },
 }))
 
 app.get('/', (request, response) => {
