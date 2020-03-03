@@ -1,0 +1,21 @@
+{
+  "name": "i.overhash.net",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "compile": "tsc -w",
+    "postbuild": "npm run prestart",
+    "prestart": "cd src && copyfiles *.html ../dist/ && cd ../",
+    "start": "node dist/index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/express": "^4.17.2",
+    "@types/express-fileupload": "^1.1.1",
+    "express": "^4.17.1",
+    "express-fileupload": "^1.1.6"
+  }
+}
