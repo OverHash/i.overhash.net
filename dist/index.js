@@ -60,6 +60,10 @@ app.post('/', (request, response) => {
                     console.log(err);
                 }
                 else {
+                    if (request.headers['sendjson']) {
+                        response.send({ url: 'http://i.overhash.net/' + fileName });
+                        return response.end();
+                    }
                     response.redirect('/' + fileName);
                 }
             });
