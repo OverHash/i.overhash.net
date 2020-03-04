@@ -20,7 +20,7 @@ function generateRandomString(length: number) {
 
 app.use(fileUpload({
 	safeFileNames: true,
-	preserveExtension: true,
+	preserveExtension: 24,
 	abortOnLimit: true,
 	responseOnLimit: 'Please upload a smaller file!',
 	useTempFiles: true,
