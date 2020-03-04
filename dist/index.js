@@ -19,7 +19,7 @@ function generateRandomString(length) {
 }
 app.use(express_fileupload_1.default({
     safeFileNames: true,
-    preserveExtension: true,
+    preserveExtension: 24,
     abortOnLimit: true,
     responseOnLimit: 'Please upload a smaller file!',
     useTempFiles: true,
