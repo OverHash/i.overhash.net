@@ -5,9 +5,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const express_fileupload_1 = __importDefault(require("express-fileupload"));
-const fs_1 = __importDefault(require("fs"));
 const PORT = 8881;
 const app = express_1.default();
+app.use(express_fileupload_1.default({
+    safeFileNames: true,
+    preserveExtension: 24,
+    abortOnLimit: true,
+    useTempFiles: true,
+    tempFileDir: __dirname + '/tmp/',
+    createParentPath: true,
+    limits: { fileSize: 1024 * 1024 * 5 },
+}));
 function generateRandomString(length) {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const charactersLength = characters.length;
@@ -17,57 +25,50 @@ function generateRandomString(length) {
     }
     return result;
 }
-app.use(express_fileupload_1.default({
-    safeFileNames: true,
-    preserveExtension: 24,
-    abortOnLimit: true,
-    responseOnLimit: 'Please upload a smaller file!',
-    useTempFiles: true,
-    tempFileDir: __dirname + '/tmp/',
-    createParentPath: true,
-    limits: { fileSize: 1024 * 1024 * 5 },
-}));
 app.get('/', (request, response) => {
-    response.sendFile(__dirname + '/index.html');
+    return response.status(200).sendFile(__dirname + '/index.html');
 });
 app.get('*', (request, response) => {
-    fs_1.default.exists(__dirname + '/uploads' + request.path, exists => {
-        if (exists) {
-            response.sendFile(__dirname + '/uploads' + request.path, err => {
-                if (err) {
-                    console.log('error sending file');
-                    console.log(err);
-                }
-                ;
-                response.end();
-            });
+    console.log('Request to download image');
+    response.sendFile(__dirname + '/uploads' + request.path, err => {
+        if (err) {
+            if (err.message.includes("ENOENT: no such file or directory")) {
+                return response.status(404).send('Requested image does not exist');
+            }
+            console.log('error sending file:');
+            console.log(err);
+            return response.status(500).send('Error sending file. Please check the console for more information');
         }
-        else {
-            response.send('Requested image does not exist');
-            response.end();
-        }
+        ;
+        response.status(200);
+        return response.end();
     });
 });
 app.post('/', (request, response) => {
     if (request.files) {
         const imageToUpload = request.files.imageToUpload;
-        if (imageToUpload && !Array.isArray(imageToUpload) && !imageToUpload.truncated) {
+        if (imageToUpload && !Array.isArray(imageToUpload) && !imageToUpload.truncated && imageToUpload.size > 0) {
             // single object!
             const fileName = generateRandomString(6) + '.' + (imageToUpload.name.split('.').pop());
             imageToUpload.mv(__dirname + '/uploads/' + fileName, err => {
                 if (err) {
-                    console.log('error upload image');
+                    console.log('error uploading image');
                     console.log(err);
+                    return response.status(500).send('Error moving file to destination. Please check the console for more information.');
                 }
                 else {
-                    if (request.headers['sendjson']) {
-                        response.send({ url: 'http://i.overhash.net/' + fileName });
-                        return response.end();
-                    }
-                    response.redirect('/' + fileName);
+                    return response.status(200).json({
+                        url: 'http://i.overhash.net/' + fileName
+                    });
                 }
             });
         }
+        else {
+            return response.status(400).send('You did not upload a file to host.');
+        }
+    }
+    else {
+        return response.status(400).send('You did not upload a file to host.');
     }
 });
 app.listen(PORT, () => {

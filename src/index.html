@@ -23,12 +23,52 @@
 <body>
 	<h1>Image Host Upload</h1>
 
-	<form method = 'POST' action='/' id="uploadImageForm" name = "uploadImageForm" enctype="multipart/form-data">
+	<form id="uploadImageForm" name="uploadImageForm">
 		Upload image for hosting:<br>
 		<input type="file" name="imageToUpload" id="imageToUpload" accept="image/*"><br><br>
 		<input type="submit" value="Upload Image" name="submit"><br>
 	</form>
 
+	<p id="response"></p>
+
+	<script>
+		const copyToClipboard = str => {
+			const el = document.createElement('textarea');
+			el.value = str;
+			document.body.appendChild(el);
+			el.select();
+			document.execCommand('copy');
+			document.body.removeChild(el);
+		};
+
+		const form = $('#uploadImageForm');
+		const fileUpload = document.getElementById('imageToUpload');
+		form.submit(function(event) {
+			event.preventDefault(); // Stops browser from navigating away from page
+
+			// check to see user has uploaded something
+			const file = fileUpload.files[0];
+			if (!file) {
+				return;
+			}
+
+			const formData = new FormData();
+			formData.append("imageToUpload", file)
+
+			$.ajax({
+				url: 'http://i.overhash.net:8881',
+				data: formData,
+				type: 'post',
+				contentType: false,
+				processData: false,
+				success: function(resp) {
+					console.log(resp);
+					copyToClipboard(resp.url);
+					document.getElementById('response').innerHTML = `SUCCESS! The URL for this file is available at <a href="${resp.url}">${resp.url}</a>`;
+				}
+			});
+		});
+	</script>
 </body>
 
 </html>

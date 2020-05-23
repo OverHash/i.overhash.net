@@ -6,6 +6,16 @@ const PORT = 8881
 
 const app = express();
 
+app.use(fileUpload({
+	safeFileNames: true,
+	preserveExtension: 24,
+	abortOnLimit: true,
+	useTempFiles: true,
+	tempFileDir: __dirname + '/tmp/',
+	createParentPath: true,
+	limits: { fileSize: 1024 * 1024 * 5 },
+}))
+
 function generateRandomString(length: number) {
 	const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 	const charactersLength = characters.length;
@@ -18,36 +28,26 @@ function generateRandomString(length: number) {
 	return result;
 }
 
-app.use(fileUpload({
-	safeFileNames: true,
-	preserveExtension: 24,
-	abortOnLimit: true,
-	responseOnLimit: 'Please upload a smaller file!',
-	useTempFiles: true,
-	tempFileDir: __dirname + '/tmp/',
-	createParentPath: true,
-	limits: { fileSize: 1024 * 1024 * 5 },
-}))
-
 app.get('/', (request, response) => {
-	response.sendFile(__dirname + '/index.html');
+	return response.status(200).sendFile(__dirname + '/index.html');
 });
 
 app.get('*', (request, response) => {
-	fs.exists(__dirname + '/uploads' + request.path, exists => {
-		if (exists) {
-			response.sendFile(__dirname + '/uploads' + request.path, err => {
-				if (err) {
-					console.log('error sending file');
-					console.log(err);
-				};
+	console.log('Request to download image');
 
-				response.end();
-			})
-		} else {
-			response.send('Requested image does not exist');
-			response.end();
-		}
+	response.sendFile(__dirname + '/uploads' + request.path, err => {
+		if (err) {
+			if (err.message.includes("ENOENT: no such file or directory")) {
+				return response.status(404).send('Requested image does not exist');
+			}
+
+			console.log('error sending file:');
+			console.log(err);
+			return response.status(500).send('Error sending file. Please check the console for more information');
+		};
+
+		response.status(200);
+		return response.end();
 	})
 })
 
@@ -55,25 +55,28 @@ app.post('/', (request, response) => {
 	if (request.files) {
 		const imageToUpload = request.files.imageToUpload;
 
-		if (imageToUpload && !Array.isArray(imageToUpload) && !imageToUpload.truncated) {
+		if (imageToUpload && !Array.isArray(imageToUpload) && !imageToUpload.truncated && imageToUpload.size > 0) {
 			// single object!
 			const fileName = generateRandomString(6) + '.' + (imageToUpload.name.split('.').pop());
 
 			imageToUpload.mv(__dirname + '/uploads/' + fileName, err => {
 				if (err) {
-					console.log('error upload image');
+					console.log('error uploading image');
 					console.log(err);
+					return response.status(500).send('Error moving file to destination. Please check the console for more information.');
 				} else {
-					if (request.headers['sendjson']) {
-						response.send({ url: 'http://i.overhash.net/' + fileName });
-						return response.end();
-					}
-
-					response.redirect('/' + fileName);
+					return response.status(200).json({
+						url: 'http://i.overhash.net/' + fileName
+					});
 				}
 			});
+		} else {
+			return response.status(400).send('You did not upload a file to host.');
 		}
+	} else {
+		return response.status(400).send('You did not upload a file to host.');
 	}
+
 })
 
 
